@@ -10,3 +10,17 @@ export const getNews = async (req, res) => {
         return res.status(500).send({message: "Algo fue mal"});
     }
 }
+
+export const getNew = async (req, res) => {
+
+    try {
+        const id = req.params.id
+        const [rows] = await pool.query("SELECT * FROM news WHERE id = ?",[id])
+        if(rows.length <= 0) return res.status(404).json({
+            message: "Empleado no encontrado."
+        })
+        return res.send(rows[0])
+    } catch (error) {
+        return res.status(500).send({message: "Algo fue mal"});
+    }
+}
