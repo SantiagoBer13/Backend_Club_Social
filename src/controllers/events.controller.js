@@ -2,7 +2,7 @@ import  { pool }  from "../db.js"
 
 export const getEvents = async (req, res) => {
     try {
-        const [rows] = await pool.query("SELECT e.title, e.dateEvent, c.name AS category, e.organizer, e.img, e.description  FROM events e"+
+        const [rows] = await pool.query("SELECT e.id, e.title, e.dateEvent, c.name, e.organizer, e.img, e.description  FROM events e" +
         " INNER JOIN category c ON c.id = e.idCategory;")
         return res.json(rows)
     } catch (error) {
