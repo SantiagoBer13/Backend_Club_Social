@@ -56,3 +56,63 @@ VALUES
   
 SELECT n.title, n.dateNew, n.description, c.name ,n.img FROM news n
 INNER JOIN category c ON c.id = n.idCategory;  
+
+create table if not exists events(
+	id int auto_increment not null,
+    dateCreated date not null,
+    dateEvent date not null,
+    organizer varchar(100) not null,
+    description varchar(1000) not null,
+    idCategory int not null,
+	img varchar(200) not null,
+    foreign key(idCategory) references category(id),
+    primary key(id)
+);
+
+ALTER TABLE events
+ADD COLUMN title VARCHAR(50);
+
+
+create table if not exists users(
+	id int auto_increment not null,
+    name varchar(100) not null,
+    surname varchar(100) not null,
+    username varchar(100) not null,
+    mail varchar(100) not null,
+    registerDate date not null,
+    password varchar(1000) not null,
+    primary key(id)
+);
+
+create table if not exists inscriptions(
+	id int auto_increment not null,
+	idEvent int not null,
+    idUser int not null,
+    dateInscription date not null,
+    foreign key(idEvent) references events(id),
+    foreign key(idUser) references users(id),
+    primary key(id)
+);
+
+SELECT n.id, n.title, n.dateNew, n.description, c.name as category,n.img FROM news n
+INNER JOIN category c ON c.id = n.idCategory;
+
+select e.id, e.title, e.dateEvent, c.name, e.organizer, e.img, e.description  from events e
+inner join category c ON c.id = e.idCategory;
+
+INSERT INTO events (dateCreated,  dateEvent, organizer, description, idCategory, img, title, hour)
+values("2023-12-10","2023-12-24","Papa Noel", "¡Únete a nosotros en la mágica Fiesta de Navidad organizada por el mismísimo Papa Noel! 
+Experimenta la alegría festiva con música, baile y sorpresas especiales para toda la familia. Este evento encantador crea un ambiente cálido 
+y acogedor, lleno de la magia característica de la temporada. Disfruta de deliciosas delicias navideñas, actividades divertidas y la posibilidad 
+de conocer a Santa Claus en persona. No te pierdas esta oportunidad de crear recuerdos inolvidables mientras celebramos juntos la maravilla de la 
+Navidad.",1,"url","Fiesta de navidad",  );
+
+UPDATE events
+SET img = 'https://acortar.link/hDlRw8', hour = '19:30:00'
+WHERE id = 1;
+
+ALTER TABLE events
+ADD COLUMN hour TIME;
+
+SELECT e.id, e.title, e.description, e.dateEvent, e.hour, c.name AS category, e.organizer, e.img   FROM events e
+INNER JOIN category c ON c.id = e.idCategory;
