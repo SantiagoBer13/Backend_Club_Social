@@ -2,6 +2,7 @@ import Express from "express";
 import cors from "cors";
 import newRoutes from "./routes/news.routes.js";
 import eventRoutes from "./routes/events.routes.js"
+import userRoutes from "./routes/users.routes.js"
 
 const app = Express();
 
@@ -17,6 +18,7 @@ app.use((req, res, next) => {
 
 app.use("/api", newRoutes);
 app.use("/api", eventRoutes);
+app.use("/api", userRoutes);
 
 app.use((req, res, next) => {
     res.status(404).json({
