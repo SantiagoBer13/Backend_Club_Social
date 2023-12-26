@@ -30,7 +30,7 @@ export const createUser = async (req, res) => {
             name, surname, username, mail, birthDate, gender, country, city, phone, registerDate
         })
     } catch (error) {
-        return res.status(500).send({message: "Algo fue mal"});
+        return res.status(500).send({ message: "Algo fue mal", messageError:  error});
     }
 
 }
