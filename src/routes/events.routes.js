@@ -9,4 +9,6 @@ router.get("/events-by-user", checkToken, getEventsByUser)
 router.post("/inscription", checkToken, inscription)
 router.delete("/inscription", checkToken, deleteInscription)
 
+
+
 export default router

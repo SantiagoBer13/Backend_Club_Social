@@ -1,5 +1,5 @@
 import { pool } from "../db.js";
-import { JWT_SECRET_USER } from "../../config.js";
+import { JWT_SECRET_USER, JWT_SECRET_ADMIN } from "../../config.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 
@@ -59,7 +59,7 @@ export const createUser = async (req, res) => {
         return res.status(201).json({
             id: rows.insertId,
             name, surname, username, mail, birthDate, gender, country, city, phone, registerDate,
-            token: createToken(user[0])
+            token: createTokenUser(user[0])
         });
     } catch (error) {
         return res.status(500).json({ message: "Algo fue mal", messageError:  error.message });
@@ -69,6 +69,8 @@ export const createUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     try {
         const { mail, password } = req.body;
+
+        
 
         const [rows] = await pool.query("SELECT id, mail, password FROM users WHERE mail = ?", [mail]);
 
@@ -82,7 +84,12 @@ export const loginUser = async (req, res) => {
             return res.status(401).json({ message: "Credenciales inválidas" });
         }
 
-        return res.status(200).json({ message: "Inicio de sesión exitoso", token: createToken(rows[0]) });
+        if(mail == "adm1@gmail.com"){
+            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenAdmin(rows[0]) });
+        }else{
+            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenUser(rows[0]) });
+        }
+  
     } catch (error) {
         return res.status(500).json({ message: "Algo fue mal", messageError:  error.message });
     }
@@ -131,10 +138,18 @@ export const updateUser = async (req, res) => {
     }
 };
 
-function createToken(user){
+function createTokenUser(user){
     const payload = {
         user_id: user.id,
         user_rol: "user"
     }
-    return jwt.sign(payload, "usuario logueado")
+    return jwt.sign(payload, JWT_SECRET_USER)
+}
+
+function createTokenAdmin(user){
+    const payload = {
+        user_id: user.id,
+        user_rol: "admin"
+    }
+    return jwt.sign(payload, JWT_SECRET_ADMIN)
 }
