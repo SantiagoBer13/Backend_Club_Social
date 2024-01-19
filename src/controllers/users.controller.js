@@ -14,13 +14,9 @@ export const getUsers = async (req, res) => {
 
 export const getUser = async (req, res) => {
     try {
-        const token = req.headers['authorization'];
-        jwt.verify(token, JWT_SECRET_USER, async (err, decoded) => {
-            if (err) {
-                console.error(err);
-                return res.status(401).json({ message: "Token no válido" });
-            }
-            const { user_id } = decoded;
+        const token = req.headers['authorization']
+        const [valid, user_id] = validateToken(token)
+        if(valid && user_id !== 0){
             try {
                 const [rows] = await pool.query(`
                     SELECT u.id, u.name, u.surname, u.username, u.mail, u.birthDate, u.gender, u.country, u.city, u.phone
@@ -36,7 +32,9 @@ export const getUser = async (req, res) => {
             } catch (error) {
                 return res.status(500).send({ message: "Algo fue mal" });
             }
-        });
+        }else{
+            return res.status(401).json({ message: "Token no válido" });
+        }
     } catch (error) {
         return res.status(500).send({ message: "Algo fue mal" });
     }
@@ -85,9 +83,9 @@ export const loginUser = async (req, res) => {
         }
 
         if(mail == "adm1@gmail.com"){
-            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenAdmin(rows[0]) });
+            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenAdmin(rows[0]), rol: "a" });
         }else{
-            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenUser(rows[0]) });
+            return res.status(200).json({ message: "Inicio de sesión exitoso", token: createTokenUser(rows[0]), rol: "u"});
         }
   
     } catch (error) {
@@ -153,3 +151,17 @@ function createTokenAdmin(user){
     }
     return jwt.sign(payload, JWT_SECRET_ADMIN)
 }
+
+function validateToken(token){
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET_USER)
+      return [true, decoded.user_id]
+    } catch (errUser) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET_ADMIN)
+        return [true, decoded.user_id]
+      } catch (errAdmin) {
+        return [false, 0]
+      }
+    }
+}    
