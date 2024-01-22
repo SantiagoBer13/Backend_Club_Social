@@ -175,7 +175,6 @@ export const createEvent = async (req, res) => {
     const token = req.headers['authorization'];
 
     jwt.verify(token, JWT_SECRET_ADMIN, async (err, decode) => {
-      console.log(req.body)
       const { title, date_event, date_created, organizer, description, hour_event, id_category, img } = req.body;
       const [rows] = await pool.query(`
       INSERT INTO events_club (title, dateCreated, dateEvent, organizer, description, hourEvent, idCategory, img) VALUES(?,?,?,?,?,?,?,?)
@@ -200,11 +199,10 @@ export const updateEvent = async (req, res) => {
     const token = req.headers['authorization'];
 
     jwt.verify(token, JWT_SECRET_ADMIN, async (err, decode) => {
-      const { title, date_event, date_created, organizer, description, hour_event, id_category, img, event_id } = req.body;
+      const { title, date_event, organizer, description, hour_event, id_category, img, event_id } = req.body;
       const [result] = await pool.query(`
       UPDATE events_club 
         SET title = IFNULL(?, title), 
-            dateCreated = IFNULL(?, dateCreated), 
             dateEvent = IFNULL(?, dateEvent), 
             organizer = IFNULL(?, organizer), 
             description = IFNULL(?, description), 
@@ -212,7 +210,7 @@ export const updateEvent = async (req, res) => {
             idCategory = IFNULL(?, idCategory), 
             img = IFNULL(?, img)
         WHERE id = ?
-      `,[title, date_created, date_event, organizer, description, hour_event, id_category, img, event_id ])
+      `,[title, date_event, organizer, description, hour_event, id_category, img, event_id ])
 
       if (result.affectedRows <= 0) {
         return res.status(404).json({ message: "Evento no encontrado" });
@@ -226,3 +224,51 @@ export const updateEvent = async (req, res) => {
     return res.status(500).send({ message: "Algo fue mal", messageError:  error});
   } 
 }
+
+export const getUsersByEvent = async (req, res) => {
+  try{
+    const event_id = req.params.id
+    const [users] = await pool.query("SELECT u.id, u.name, u.surname, u.username, u.mail, u.birthDate, u.gender, u.country, u.city, u.phone FROM users u "+
+    "INNER JOIN inscriptions i ON i.idUser = u.id " +
+    "WHERE idEvent = ?",[event_id])
+
+    if(users.length <= 0) return res.status(404).json({
+        message: "Usuarios no encontrado."
+    })
+
+    return res.send(users)      
+    
+    //  return res.status(401).json({ message: "Token no válido" })
+  } catch (error){
+      return res.status(500).send({message: "Algo fue mal"});
+  }
+}
+
+export const deleteEvent = async (req, res) => {
+  try {
+
+    // Extraer el event_id del cuerpo de la solicitud
+    const { event_id } = req.body;
+
+    // Utilizar transacciones si necesitas que ambas consultas se ejecuten o ninguna
+    // await pool.beginTransaction()
+
+    // Eliminar registros de la tabla 'inscriptions' donde 'idEvent' es igual a event_id
+    await pool.query("DELETE FROM inscriptions WHERE idEvent = ?", [event_id]);
+
+    // Eliminar registros de la tabla 'events_club' donde 'id' es igual a event_id
+    await pool.query("DELETE FROM events_club WHERE id = ?", [event_id]);
+
+    // Confirmar la transacción si ambas consultas se ejecutan correctamente
+    // await pool.commit();
+
+    // Enviar respuesta exitosa al cliente
+    res.status(204).json({ message: "Evento Eliminado" });
+  } catch (error) {
+    // Si hay un error, revertir la transacción (si se inició)
+    // await pool.rollback();
+
+    // Enviar respuesta de error al cliente
+    res.status(500).json({ message: error.message || "Error al eliminar el evento" });
+  }
+};
