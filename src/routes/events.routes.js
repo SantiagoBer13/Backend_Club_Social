@@ -11,8 +11,6 @@ router.delete("/inscription", checkToken, deleteInscription)
 router.post("/create-event", checkTokenAdmi, createEvent)
 router.patch("/update-event", checkTokenAdmi, updateEvent)
 router.get("/users-by-event/:id", checkTokenAdmi, getUsersByEvent)
-
-/**Desarrolando */
 router.delete("/event", checkTokenAdmi, deleteEvent)
 
 export default router

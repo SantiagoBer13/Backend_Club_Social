@@ -2,6 +2,9 @@ import { pool } from "../db.js";
 import { JWT_SECRET_USER, JWT_SECRET_ADMIN } from "../../config.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
+import { Resend } from 'resend';
+
+const resend = new Resend('re_iCdccdXw_Lusu1iw6nRbF152iGMa8HzXt');
 
 export const getUsers = async (req, res) => {
     try {
@@ -135,6 +138,53 @@ export const updateUser = async (req, res) => {
         return res.status(500).send({ message: "Algo fue mal" });
     }
 };
+
+export const checkUser = async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        // Verificar si el correo está asociado a una cuenta de usuario
+        const [rows] = await pool.query(`
+            SELECT IF(COUNT(*) > 0, true, false) AS found_user
+            FROM users
+            WHERE mail = ?;`,
+            [email]
+        );
+        const usuarioEncontrado = rows[0].found_user;
+
+        if (usuarioEncontrado == "1") {
+            // Generar un token de restablecimiento de contraseña
+            const token = jwt.sign({ email }, 'secreto', { expiresIn: '1h' });
+
+            // Enviar correo electrónico de restablecimiento de contraseña
+            const { data, error } = await sendMail(email, token);
+
+            if (error) {
+                return res.status(400).json(error);
+            }
+            res.status(200).json({ message: 'Correo electrónico enviado con éxito.' });
+        } else {
+            res.status(404).json({ message: 'El correo electrónico no está asociado a ninguna cuenta.' });
+        }
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).send('Error al procesar la solicitud.');
+    }
+};
+
+// Función para enviar correo electrónico de restablecimiento de contraseña
+async function sendMail(email, token) {
+    const { data, error } = await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: "devpassionate0.0@gmail.com",
+        subject: 'Restablecimiento de Contraseña',
+        html: `
+            <h1 style="color: red; text-align: center">Restablecimiento de Contraseña</h1>
+            <p>Haz clic en este <a href="http://tuapp.com/reset-password/${token}">enlace</a> para restablecer tu contraseña.</p>
+        `
+    });
+    return { data, error };
+}
 
 function createTokenUser(user){
     const payload = {

@@ -21,7 +21,18 @@ export const  getEvents = async (req, res) => {
     try {
       const token = req.headers['authorization']
       const [valid, user_id] = validateToken(token)
-
+      const { page = 1, nameFilter = '', nameCategory = '', date = '', orden} = req.query;
+      const startIndex = (page - 1) * 9;
+      const [numEvents] = await pool.query(
+        `SELECT * FROM events_club 
+          WHERE title LIKE ? AND ((dateEvent > CURRENT_DATE()) OR (dateEvent = CURRENT_DATE() AND hourEvent > CURRENT_TIME()))
+        `, [`%${nameFilter}%`]
+      );
+      const pages = Math.ceil( parseInt(numEvents.length) / 9)
+      let queryString = ""
+      if (orden === "ASC" || orden === "DESC") {
+        queryString += ` ORDER BY dateEvent ${orden}`;
+      }
         if(req.headers['authorization'] ){
           if(valid && user_id !== 0){
                 const [result] = await pool.query(`
@@ -45,17 +56,28 @@ export const  getEvents = async (req, res) => {
               FROM
                 events_club e
               LEFT JOIN
-                category c ON c.id = e.idCategory;`,
-                    [user_id]);
+                category c ON c.id = e.idCategory
+                WHERE e.title LIKE ? AND e.dateEvent LIKE ? AND c.name LIKE ? 
+                AND ((e.dateEvent > CURRENT_DATE()) OR (e.dateEvent = CURRENT_DATE() AND e.hourEvent > CURRENT_TIME()))
+                ${queryString}
+                LIMIT ?, 9;`,
+                [user_id, `%${nameFilter}%`, `%${date}%`,`%${nameCategory}%`, startIndex]);
 
-                return res.json(result)
+                return res.json({"events": result, "pages": pages})
           }else{
             return res.status(401).json({ message: "Token no válido" });
           }
         }else{
-            const [rows] = await pool.query("SELECT e.id, e.title, e.description, e.dateEvent, e.hourEvent, c.name AS category, e.organizer, e.img   FROM events_club e" +
-        " INNER JOIN category c ON c.id = e.idCategory;");
-        return res.json(rows)
+            const [rows] = await pool.query(`
+            SELECT e.id, e.title, e.description, e.dateEvent, e.hourEvent, c.name AS category, e.organizer, e.img   FROM events_club e
+            INNER JOIN category c ON c.id = e.idCategory
+            WHERE e.title LIKE ? AND e.dateEvent LIKE ? AND c.name LIKE ? 
+            AND ((e.dateEvent > CURRENT_DATE()) OR (e.dateEvent = CURRENT_DATE() AND e.hourEvent > CURRENT_TIME()))
+            ${queryString}
+            LIMIT ?, 9;
+            `,
+            [`%${nameFilter}%`, `%${date}%`,`%${nameCategory}%`,  startIndex]);
+        return res.json({"events":rows, "pages": pages})
         }
     } catch (error) {
         return res.status(500).json({ success: false, message: "Algo fue mal", error: error.message });
@@ -115,11 +137,14 @@ export const getEventsByUser = async (req, res) =>{
       const token = req.headers['authorization']
       const [valid, user_id] = validateToken(token)
       if(valid && user_id !== 0){
-            const [rows] = await pool.query("SELECT e.id, e.title, e.description, e.dateEvent, e.hourEvent, c.name AS category, e.organizer, e.img   FROM events_club e"+
-            " INNER JOIN category c ON c.id = e.idCategory" +
-            " INNER JOIN inscriptions i ON e.id = i.idEvent" +
-            " INNER JOIN users u ON u.id = i.idUser" +
-            " WHERE u.id = ?;",[user_id])
+        const [rows] = await pool.query(`
+          SELECT e.id, e.title, e.description, e.dateEvent, e.hourEvent, c.name AS category, e.organizer, e.img   
+          FROM events_club e
+          INNER JOIN category c ON c.id = e.idCategory
+          INNER JOIN inscriptions i ON e.id = i.idEvent
+          INNER JOIN users u ON u.id = i.idUser
+          WHERE u.id = ? AND ((e.dateEvent > CURRENT_DATE()) OR (e.dateEvent = CURRENT_DATE() AND e.hourEvent > CURRENT_TIME()));
+      `, [user_id]);
             if(rows.length <= 0) return res.status(404).json({
                 message: "Evento no encontrado."
             })
@@ -186,7 +211,6 @@ export const createEvent = async (req, res) => {
           message: "Evento Creado",
           event: event[0]
         })
-        
       }
     })
   } catch (error) {
