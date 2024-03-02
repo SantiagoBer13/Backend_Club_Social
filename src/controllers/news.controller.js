@@ -55,7 +55,7 @@ export const createNew = async(req, res) => {
         " INNER JOIN category c ON c.id = n.idCategory WHERE n.id = ?", [create.insertId]);        
         return res.status(201).json({
           message: "New Created",
-          event: news[0]
+          new: news[0]
         })
       }
   } catch (error) {
@@ -82,7 +82,7 @@ export const updateNew = async (req, res) => {
       " INNER JOIN category c ON c.id = n.idCategory WHERE n.id = ?", [new_id]);        
       return res.status(201).json({
       message: "New Updated",
-      event: news[0]
+      new: news[0]
     })
   } catch (error) {
     return res.status(500).send({ message: "Algo fue mal", messageError:  error});

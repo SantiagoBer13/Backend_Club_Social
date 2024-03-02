@@ -6,8 +6,6 @@ import { createNew, updateNew, deleteNew } from "../controllers/news.controller.
 const router = Router()
 router.get("/news", getNews)
 router.get("/news/:id", getNew)
-
-/*Desarrollando */
 router.post("/create-new", checkTokenAdmi, createNew)
 router.patch("/update-new", checkTokenAdmi, updateNew)
 router.delete("/new",checkTokenAdmi, deleteNew)
